@@ -1,5 +1,4 @@
-from barcode import Code39
-from barcode.writer import ImageWriter 
+
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
@@ -8,8 +7,8 @@ from datetime import datetime
 from PIL import Image, ImageTk
 
 
-''''
-        equipment_type = {
+""""
+equipment_type = {
             "T" : 'Touch Workstation',
             "NT" : 'Touch Workstation',
             "AIO" : 'All in One Workstation',
@@ -18,8 +17,9 @@ from PIL import Image, ImageTk
             "WKBM" : 'Wireless Keyboard Mouse Combo',
             "KB" : "Keyboard USB",
             "MS" : "Mouse USB",
+            "DOC": "Docking Station"
         }
-        barcode_action = {
+barcode_action = {
             '0000' : 'Inventory',
             '0001' : "Deployed",
             '0002' : "Return",
@@ -27,7 +27,7 @@ from PIL import Image, ImageTk
             '0004' : "Broken",
             '0005' : "Recycle"
         }
-'''
+"""""
 
 def connect_to_database():
     conn_str = 'DRIVER={SQL Server};SERVER={ESMHCANDBP3};DATABASE={AnalyticsAdhoc};Trusted_Connection=yes'
@@ -55,10 +55,14 @@ class BarcodeApp:
     def __init__(self, root):
         self.root= root
         self.root.title("Inventory log")
+
         self.main_ui()
         self.loginScreen()
         
     def loginScreen(self):
+        self.title = ttk.Label(root,text="MIS Inventory log", font="Arial 20 bold",foreground="#004B8D")
+        self.title.place(x=600, y=20)
+       
         self.image_frame = ttk.Frame(root)
         ttk.Label(self.image_frame,image=self.jh_image,justify="right").grid(column=0,row=0)
         self.image_frame.place(x=1350, y= 0)
@@ -69,12 +73,12 @@ class BarcodeApp:
         self.user_label_frame = ttk.LabelFrame(self.main_frame, text="User Credentials", width=300, height=300)
         self.user_label_frame.grid(column=2, row =2, sticky="nsew")
 
-        ttk.Label(self.user_label_frame, text="Scan or enter your JHED ID", font=10, padding=10).grid(column=0, row=0, padx=5, pady=5)
+        ttk.Label(self.user_label_frame, text="Scan or enter your Card Number", font=10, padding=10).grid(column=0, row=0, padx=5, pady=5)
         ttk.Label(self.user_label_frame, text="Enter first name", font=10, padding=10).grid(column=0, row=1, padx=5, pady=5)
         ttk.Label(self.user_label_frame, text="Enter last name", font=10, padding=10).grid(column=0, row=2, padx=5, pady=5)
 
         self.user_jhedID = ttk.Entry(self.user_label_frame, width=50)
-        self.user_jhedID.bind("<Return>", lambda e: self.get_Name(e,self.user_fName))
+        self.user_jhedID.bind("<Return>", lambda e: self.get_user(e,self.user_fName,self.user_jhedID,self.user_fName,self.user_lName))
         self.user_jhedID.grid(column=1, row=0, padx=10, pady=5)
 
         self.user_fName = ttk.Entry(self.user_label_frame, width=50)
@@ -86,11 +90,6 @@ class BarcodeApp:
         self.user_fName.bind("<Return>", lambda e: self.submit_login(e))
 
 
-
-        #Enter should check if they exist if not prompt them to try again
-        ttk.Button(self.user_label_frame, text="Submit",command= self.submit_login).grid(column=0, row=4, columnspan=2, pady=10)
-
-
     def main_ui(self):
         """Main Frame""" 
         self.main_frame = ttk.Frame(root,width=800,height=800)
@@ -100,9 +99,9 @@ class BarcodeApp:
         self.switch_buttons_frame.place(x=390,y=700)
 
         """Title"""
-        self.title = ttk.Label(root,text="MIS Inventory log", font="Arial 20")
-        self.title.place(x=600, y=0)
-      
+        self.title = ttk.Label(root,text="MIS Inventory log", font="Arial 20 bold",foreground="#004B8D")
+        self.title.place(x=600, y=20)
+
         '''Images'''
         self.image = Image.open("JH_logo.png")
         self.reduced_jh_iamge = self.image.resize((150,100))
@@ -110,35 +109,44 @@ class BarcodeApp:
 
         '''Variables'''
         self.save_var = tk.IntVar()
-        self.save_equipment = tk.IntVar()
+        self.batch_var = tk.IntVar()
+        self.save_owner_creds =  tk.IntVar()
         self.field2_var = tk.IntVar()
         self.field3_var = tk.IntVar()
         self.time = datetime.now()
         self.field1 = tk.StringVar()
         self.field2 = tk.StringVar()
         self.field3 = tk.StringVar()
-        self.search_options = ("-----------" , "JHEID", "Device_Barcode", "EQ_Barcode", "fName", "lName", "Date", "Time")
+        self.search_options = ("-----------" , "cardNo", "Device_Barcode", "EQ_Barcode", "return_fName", "return_lName", "[Return/Issued_JHED]")
         self.field1.set("-----------")
         self.field2.set("-----------")
         self.field3.set("-----------")
 
    
     """Home/Inserst page"""
-    def insertion_page(self):
+    def device_return_page(self):
+        
+        
         self.insert_frame = ttk.Frame(self.main_frame)
 
+        self.navbar =ttk.LabelFrame(self.insert_frame, text="Switch Pages", width=200,  relief=tk.RAISED, borderwidth=2)
+        
+        #self.navbar.grid(column=4,row=10)
+
         """Title"""
-        self.title_frame = ttk.Frame(self.insert_frame)
-        ttk.Label(self.title_frame,text="Regular Insert", font = 'Arial 18 bold',foreground="#004B8D").grid(column=0,row=0)
-        self.title_frame.grid(column=3,row=0)
+      
+        
+        #self.return_label = ttk.Label(root,text="Regular Insert", font = 'Arial 18 bold',foreground="#004B8D")
+        self.navbar.grid(column=4,row=10) 
 
         self.entry_frame = ttk.Frame(self.insert_frame)
-        single_item_entry_frame = ttk.LabelFrame(self.entry_frame, text="Single Item Entry", width=500, height=500)
+        single_item_entry_frame = ttk.LabelFrame(self.entry_frame, text="Device", width=500, height=500)
         single_item_entry_frame.grid(column=0, row=0, ipadx=5, ipady=5)
-        self.entry_frame.grid(column=3,row=6)
+        self.entry_frame.grid(column=4,row=7)
 
         ttk.Label(single_item_entry_frame, text="Scan Equipment barcode", font= 30,padding=10).grid(column=0,row=0)
         ttk.Label(single_item_entry_frame, text="Scan/ Enter the barcode of the device", font= 30,padding=10).grid(column=0,row=2)
+        ttk.Label(self.main_frame, text="Device Return Page", font= 'Arial 18 bold', foreground="#004B8D" ).place(x=200,y=0)
 
         self.barcodeEquipment = ttk.Entry(single_item_entry_frame, width=50)
         self.barcodeEquipment.grid(column=0, row=1, padx=5, pady=5)
@@ -147,56 +155,53 @@ class BarcodeApp:
 
         self.deviceBarcode = ttk.Entry(single_item_entry_frame, width=50)
         self.deviceBarcode.grid(column=0, row=3, padx=5, pady=5)
-        self.deviceBarcode.bind("<Return>", lambda e: self.focus_next_widget(e,self.return_jhedID))
 
-        self.save_equip = ttk.Checkbutton(single_item_entry_frame, text="Save Equip barcode?",command=self.save_equip, variable=self.save_equipment).grid(column=0, row=5)
+        self.deviceBarcode.bind("<Return>", lambda e: self.focus_next_widget(e, self.return_jhedID))
 
         """Logo"""
         self.image_frame = ttk.Frame(root)
         ttk.Label(self.image_frame,image=self.jh_image,justify="right").grid(column=0,row=0)
         self.image_frame.place(x=1350, y= 0)
 
-        """Buttons"""
-        self.buttons_frame = ttk.Frame(self.insert_frame)
-        self.enter_button = ttk.Button(self.buttons_frame, text= "Enter", command=self.insertIntoDB).grid(column=0,row=0,padx=5,pady=5)
-        self.clear = ttk.Button(self.buttons_frame, text= "Clear Entries", command=self.clear_entries).grid(column=0,row=2,padx=5,pady=5)
-        self.buttons_frame.grid(column=8,row =6)
 
         """Owner Information"""
         self.owner_creds_frame = ttk.Frame(self.insert_frame,width=300,height=300)
-        self.owner_creds_frame.grid(column=4,row=6)  
+        self.owner_creds_frame.grid(column=5,row=7)  
         owner_label_frame = ttk.LabelFrame(self.owner_creds_frame, text="Owner Creds here",width=300,height=300)
         owner_label_frame.grid(column=0,row=0)
 
         ttk.Label(owner_label_frame, text="Scan or enter owner JHED ID", font= 10,padding=10).grid(column=0,row=0)
         ttk.Label(owner_label_frame, text="Enter the owner's first name", font= 10,padding=10).grid(column=0,row=2)
         ttk.Label(owner_label_frame, text="Enter the owner's last Name", font= 10,padding=10).grid(column=0,row=4)
+        ttk.Label(owner_label_frame,text="Comments", font= 10,padding=10).grid(column=0,row=6)
 
         self.return_fName = ttk.Entry(owner_label_frame, width=50)
         self.return_fName.grid(column=0, row=3, padx=5, pady=5)
-        self.return_fName.configure(state="disabled")
         self.return_fName.bind("<Return>", lambda e: self.focus_next_widget(e,self.return_lName))
 
         self.return_lName = ttk.Entry(owner_label_frame, width=50)
-        #self.return_lName.bind("<Return>", lambda e: self.insertIntoDB(e))
-        self.return_lName.configure(state="disabled")
         self.return_lName.grid(column=0, row=5, padx=5, pady=5)
 
         self.return_jhedID = ttk.Entry(owner_label_frame, width=50)
         self.return_jhedID.grid(column=0, row=1, padx=5, pady=5)
-        self.return_jhedID.configure(state="disabled")
-        self.return_jhedID.bind("<Return>", lambda e: self.get_Name(e,self.return_fName))
+        self.return_jhedID.bind("<Return>", lambda e: self.get_Name(e,self.return_commments,self.return_jhedID,self.return_fName,self.return_lName,self.return_commments))
 
-        self.save_Creds = ttk.Checkbutton(owner_label_frame, text= "Device Return?", command=self.save_entries, variable=self.save_var).grid(column=0, row= 7)
+        self.return_commments = ttk.Entry(owner_label_frame,width=50)
+        self.return_commments.grid(column=0,row=7)
+        self.return_commments.bind("<Return>" , lambda e: self.check_return_validation(e,self.barcodeEquipment,self.deviceBarcode,self.return_jhedID,self.return_fName,self.return_lName,self.return_commments))
 
-        self.search_button_page = ttk.Button(self.switch_buttons_frame, text="Search", command=lambda: self.switch_pages(page=self.search_page))
-        self.batch_insertion_button = ttk.Button(self.switch_buttons_frame, text="Batch Insert", command= lambda: self.switch_pages(self.batch_insertion))
-        
-        self.search_button_page.grid(column=0,row=0)
-        self.batch_insertion_button.grid(column=1,row=0)
+        self.search_button_page = ttk.Button(self.navbar, text="Search Page", command=lambda: self.switch_pages(self.search_page),width=25)
+        self.insertion_button = ttk.Button(self.navbar, text="Insert Page", command= lambda: self.switch_pages(self.insertion_page),width=25)
+        self.back_to_login = ttk.Button(self.navbar, text="Logout", command=self.check_logout,width=25)
+        self.save_return_device = ttk.Checkbutton(owner_label_frame, text="Save Owner Credentials", variable=self.save_var, command=self.save_entries).grid(column=0,row=8)
 
         
         self.insert_frame.grid(column=0,row=0)
+
+        
+        self.search_button_page.grid(column=0,row=0)
+        self.insertion_button.grid(column=1,row=0)
+        self.back_to_login.grid(column=2,row=0)
 
     
     """Search Page"""
@@ -205,9 +210,12 @@ class BarcodeApp:
         self.search_frame = ttk.Frame(self.main_frame)
         self.results_frame = ttk.Frame(self.main_frame)
         self.results_filtered_frame = ttk.Frame(self.main_frame)
+        self.navbar_search = ttk.LabelFrame(self.search_frame, text="Switch Pages", width=200,  relief=tk.RAISED, borderwidth=2)
+        self.navbar_search.grid(column=5,row=1)
+        ttk.Label(self.main_frame,text="Search Page", font = 'Arial 18 bold').place(x=0,y=0)
 
         self.search_by_frame = ttk.LabelFrame(self.search_frame,text= "Search", width=300, height=80)
-        self.search_by_frame.grid(column=5,row=0)
+        self.search_by_frame.grid(column=5,row=2)
 
         ttk.Label(self.search_by_frame, text="Field (Required)", font= 5).grid(column=1,row=0)
         ttk.Label(self.search_by_frame, text="Field 2 (Optional): ", font= 5).grid(column=1,row=2)
@@ -215,6 +223,7 @@ class BarcodeApp:
         ttk.Label(self.search_by_frame, text=" Value: ", font=5).grid(column= 3,row=0)
         ttk.Label(self.search_by_frame, text=" Value 2: ", font=5).grid(column= 3,row=2)
         ttk.Label(self.search_by_frame, text=" Value 3: ", font=5).grid(column= 3,row=4)
+        
         
         self.search_value1 = ttk.Entry(self.search_by_frame, width=50)
         self.search_value1.grid(column=4,row=0)
@@ -231,6 +240,11 @@ class BarcodeApp:
         self.show_results = ttk.Button(self.search_by_frame, text= "View All", command=self.Show_All).grid(column=6,row=0,padx=5,pady=5)
         self.clear_Table = ttk.Button(self.search_by_frame, text= "Clear", command=self.clear_tree).grid(column=6,row= 4,padx=5,pady=5)
 
+        self.toReturn_search = ttk.Button(self.navbar_search,text="Device Return Page", command=lambda:self.switch_pages(self.device_return_page),width=25)
+        self.toInsert_search = ttk.Button(self.navbar_search, text="Insert Page", command=lambda:self.switch_pages(self.insertion_page),width=25)
+        self.toLogin_search = ttk.Button(self.navbar_search,text="Logout", command=self.check_logout,width=25)
+
+
         self.check_field2 = ttk.Checkbutton(self.search_by_frame, command=self.field_handling, variable=self.field2_var).grid(column=0, row= 2)
         self.check_field3 = ttk.Checkbutton(self.search_by_frame, command=self.field_handling, variable=self.field3_var).grid(column=0, row= 4)
        
@@ -246,36 +260,138 @@ class BarcodeApp:
         self.field3_dropdown.configure(state="disabled")
         self.field3_dropdown.grid(column= 2, row=4)
         
-        self.back_to_inserstion = ttk.Button(self.switch_buttons_frame, text="Insert", command=lambda:self.switch_pages(page=self.insertion_page)).grid(column=4,row=0,padx=5,pady=5)
-
-    
-        self.search_frame.grid(column=0,row=0)
-        self.results_frame.grid(column=0,row=2)
-        self.results_filtered_frame.grid(column=0,row=3)
-    
-    def batch_insertion(self):
         
-        self.batch_insert_frame = ttk.LabelFrame(self.main_frame, text="Batch Insert Frame", width=300, height=300)
-        self.batch_insert_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        
+        self.search_frame.grid(column=0,row=1)
+        self.results_frame.grid(column=0,row=3)
+        self.results_filtered_frame.grid(column=0,row=4)
+
+        self.toReturn_search.grid(column=0,row=0)
+        self.toInsert_search.grid(column=1,row=0)
+        self.toLogin_search.grid(column=2,row=0)
+      
+    
+    def insertion_page(self):
+        
+        self.batch_insert_frame = ttk.LabelFrame(self.main_frame, text=" Insert Frame", width=300, height=300)
+        self.batch_insert_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
+
+        self.navbar_batch = ttk.Labelframe(self.main_frame,text="Switch Pages",width=200,  relief=tk.RAISED, borderwidth=2)
 
         ttk.Label(self.batch_insert_frame, text="Scan Equipment barcode", font= 30,padding=10).grid(column=0,row=0)
         ttk.Label(self.batch_insert_frame, text="Scan/ Enter the barcode of the device", font= 30,padding=10).grid(column=0,row=2)
+        ttk.Label(self.batch_insert_frame, text="Issued to", font= 30,padding=10).grid(column=0,row=4)
+        ttk.Label(self.batch_insert_frame, text="Comments", font= 30,padding=10).grid(column=0,row=6)
+       
+        
+
 
         self.batch_barcodeEquipment = ttk.Entry(self.batch_insert_frame, width=50)
         self.batch_barcodeEquipment.grid(column=0, row=1, padx=5, pady=5)
         self.batch_barcodeEquipment.focus()
-        self.batch_barcodeEquipment.bind("<Return>", lambda e: self.batch_lock(e))
+        self.batch_barcodeEquipment.bind("<Return>", lambda e: self.focus_next_widget(e,self.batch_deviceBarcode))
 
         self.batch_deviceBarcode = ttk.Entry(self.batch_insert_frame, width=50)
         self.batch_deviceBarcode.grid(column=0, row=3, padx=5, pady=5)
-        self.batch_deviceBarcode.bind("<Return>", lambda e: self.batch_insertIntoDB(e))
+        self.batch_deviceBarcode.bind("<Return>", lambda e: self.focus_next_widget(e,self.insert_issued_to))
 
-        #ttk.Button(self.batch_insert_frame, text="Submit", command=self.batch_insertIntoDB).grid(column=0, row=4, columnspan=2, pady=10)
+        self.insert_issued_to = ttk.Entry(self.batch_insert_frame, width=50)
+        self.insert_issued_to.grid(column=0, row=5, padx=5, pady=5)
+        self.insert_issued_to.bind("<Return>", lambda e: self.focus_next_widget(e,self.insert_comments) )
 
-    def batch_lock(self,event):
-        self.batch_barcodeEquipment.configure(state="disabled")
-        self.batch_deviceBarcode.focus()
-        self.batch_deviceBarcode.delete(0,tk.END)
+        self.insert_comments = ttk.Entry(self.batch_insert_frame, width=50)
+        self.insert_comments.grid(column=0, row=7, padx=5, pady=5)
+        self.insert_comments.bind("<Return>", lambda e: self.check_validation(e,self.batch_deviceBarcode,self.batch_barcodeEquipment, self.insert_issued_to, self.insert_comments))
+       
+        self.batch_checkbox = ttk.Checkbutton(self.batch_insert_frame, text="batch insert?",command=self.batch_lock,variable=self.batch_var)
+        self.batch_checkbox.grid(column=0,row=8)
+
+        self.toInsert_search = ttk.Button(self.navbar_batch,text="Device Return Page", command=lambda:self.switch_pages(self.device_return_page),width=25)
+        self.toBatch_search = ttk.Button(self.navbar_batch, text="Search Page", command=lambda:self.switch_pages(self.search_page),width=25)
+        self.toLogin_search = ttk.Button(self.navbar_batch, text="Logout", command=self.check_logout,width=25)
+
+        self.toInsert_search.grid(column=0,row=0)
+        self.toBatch_search.grid(column=1,row=0)
+        self.toLogin_search.grid(column=2,row=0)
+
+        self.navbar_batch.grid(column=0,row=1)
+
+        
+    
+    def check_logout(self):
+        logout_answer =  messagebox.askyesno("Log out",f"You are about to Log out are you sure? \n")
+
+        if logout_answer:
+            self.switch_pages(self.loginScreen)
+            self.current_user.destroy()
+        else:
+            return
+
+    def check_validation(self,event,device,equipment,issued_to,comments):
+        #action = barcode_action.get(self.batch_barcodeEquipment.get().split('-')[-1])
+
+        code = equipment.get().split('-')[-1]
+        item = equipment.get().split('-')[1]
+        conn = connect_to_database()
+        cursor = conn.cursor()
+
+        if code == '0010':
+            messagebox.showerror("WRONG PAGE", f"The code you entered: {equipment.get()} \n Is a device return code. \n For codes ending in 0010 please refer to the device return page \n" )
+            equipment.delete(0,tk.END)
+            equipment.focus()
+        else:
+            cursor.execute("{CALL validate_action (?,?)} ",code,item)
+
+            self.val_res = cursor.fetchone()
+
+            answer = messagebox.askyesno("Insert Check",f"You are about to insert device: {device.get()} \n as {self.val_res} \n Issued to: {issued_to.get()} \n With comments: {comments.get()} \n")
+
+
+            if answer:
+                self.insertIntoDB(equipment,device,comments,issued_to)
+            else:
+                device.delete(0,tk.END)
+                equipment.configure(state="normal")
+                self.batch_var.set(0)
+                equipment.delete(0,tk.END)
+                equipment.focus()
+        
+    def check_return_validation(self,event,equip_code,device,return_JHED,fname,lname,comments):
+        
+        code = equip_code.get().split('-')[-1]
+        item = equip_code.get().split('-')[1]
+        conn = connect_to_database()
+        cursor = conn.cursor()
+
+        if code != '0010':
+            messagebox.showerror("WRONG PAGE", f"The code you entered: {equip_code.get()} \n Is not a device return code \n, for codes not ending in 0010 please refer to the insert page \n" )
+            equip_code.delete(0,tk.END)
+            equip_code.focus()
+        else:  
+            cursor.execute("{CALL validate_action (?,?)} ",code,item)
+
+            self.val_res = cursor.fetchone()
+
+
+        #cursor.execute(f"SELECT Action, Item FROM [AnalyticsAdhoc].[dbo].[inventory_actions],[AnalyticsAdhoc].[dbo].[inventory_items]  WHERE Barcode = {code}")
+            answer = messagebox.askyesno("Insert Check",f"You are about to insert device: {device.get()} \n as {self.val_res} \n from: {fname.get()} {lname.get()} \n Comments: {comments.get()} ")
+
+
+            if answer:
+                self.insert_Device_Return(fname,lname,comments,equip_code,device,return_JHED)
+            else:
+                device.delete(0,tk.END)
+                equip_code.configure(state="normal")
+                equip_code.delete(0,tk.END)
+                equip_code.focus()
+
+
+    def batch_lock(self):
+        if self.batch_var.get() == 1:
+            self.batch_barcodeEquipment.configure(state="disabled")
+        else:
+            self.batch_barcodeEquipment.configure(state="normal")
+
 
     def switch_pages(self,page):
         for widgets in self.main_frame.winfo_children():
@@ -287,16 +403,10 @@ class BarcodeApp:
     def save_entries(self):
         if self.save_var.get() == 1 :
             for entries in [self.return_jhedID, self.return_fName, self.return_lName]:
-                entries.configure(state="normal")
-        else:
-            for entries in [self.return_jhedID, self.return_fName, self.return_lName]:
                 entries.configure(state="disabled")
-
-    def save_equip(self):
-        if self.save_equipment.get() == 1 :
-            self.barcodeEquipment.configure(state="disabled")
         else:
-            self.barcodeEquipment.configure(state="normal")
+               for entries in [self.return_jhedID, self.return_fName, self.return_lName]:
+                entries.configure(state="normal")
     
     def focus_next_widget(self,event,next_widget):
         next_widget.focus()
@@ -318,64 +428,60 @@ class BarcodeApp:
             self.search_value3.configure(state="disabled")
             
 
-    def insertIntoDB(self,event):
-        jhedID = self.user[0]
-        fName = self.user[1]
-        lName = self.user[2]
-        eq_barcode = self.barcodeEquipment.get()
-        device = self.deviceBarcode.get()
+    def insertIntoDB(self,barcode,device,comments,issued_to):
+        cardNo = self.user[0]
+        eq_barcode = barcode.get()
+        device = device.get()
+        comments = comments.get()
+        issued_to = issued_to.get()
         
         try:
             conn = connect_to_database()
             cursor= conn.cursor()
-            cursor.execute("{CALL insert_into_DB (?,?,?,?,?,?)}", jhedID,fName,lName,eq_barcode,device,self.time)
+            cursor.execute("{CALL insert_into_DB (?,?,?,?,?,?)}", cardNo,eq_barcode,device,issued_to,comments,self.time)
             cursor.commit()
-            self.show_entry()
-            self.clear_entries()
-
         
         except Exception as e:
             messagebox.showerror("Database Error", f"Error inserting into to database: {e}")
             print("Database Error", f"Error inserting into to database: {e}")
             return None
         
-    def batch_insertIntoDB(self,event):
-        jhedID = self.user[0]
-        fName = self.user[1]
-        lName = self.user[2]
-        eq_barcode = self.batch_barcodeEquipment.get()
-        device = self.batch_deviceBarcode.get()
+        self.show_entry(device)
+        self.clear_insert_entries()
         
-        #try:
-        conn = connect_to_database()
-        cursor= conn.cursor()
-        cursor.execute("{CALL insert_into_DB (?,?,?,?,?,?)}", jhedID,fName,lName,eq_barcode,device,self.time)
-        cursor.commit()
-        self.show_batch_entry()
-        self.batch_deviceBarcode.delete(0,tk.END)
-        self.batch_deviceBarcode.focus()
 
+    def insert_Device_Return(self,fname,lname,comments,equip_code,device,return_JHED):
+
+        cardNo = self.user[0]
+        fname = fname.get()
+        lname = lname.get()
+        equip_code = equip_code.get()
+        device = device.get()
+        return_JHED = return_JHED.get()
+        comments = comments.get()
+
+
+        try:
+            conn = connect_to_database()
+            cursor = conn.cursor()
+            cursor.execute("{CALL insert_device_return (?,?,?,?,?,?,?,?)}" ,equip_code,device, cardNo, return_JHED, fname,lname,comments,self.time)
+            conn.commit()
+
+        except pyodbc.Error as e:
+            messagebox.showerror("Database Error", f"Error inserting into to database: {e}")
+            print("Database Error", f"Error inserting into to database: {e}")
+            return None
         
-        #except Exception as e:
-            #messagebox.showerror("Database Error", f"Error inserting into to database: {e}")
-            #print("Database Error", f"Error inserting into to database: {e}")
-            #return None
-            
-            
-    def show_entry (self):
+        self.show_entry(device)
+        self.clear_return_entries()
+        
+    def show_entry (self,device):
         
         str = (f"JHEID: {self.user[0]}\n" 
         f"Time: {self.time}\n"
-        f"Successfully imported device {self.deviceBarcode.get()} into the database! \n")
+        f"Successfully imported device {device} into the database! \n as {self.val_res}")
         messagebox.showinfo("Sucessful Insertion", str)
-    
-    def show_batch_entry (self):
-        
-        str = (f"JHEID: {self.user[0]}\n" 
-        f"Time: {self.time}\n"
-        f"Successfully imported device {self.batch_deviceBarcode.get()} into the database! \n")
-        messagebox.showinfo("Sucessful Insertion", str)
-       
+
     def clear_tree(self):
         for widgets in self.results_frame.winfo_children():
             widgets.destroy()
@@ -394,25 +500,36 @@ class BarcodeApp:
             messagebox.showinfo("SUCCESSFULL LOGIN ", "LOGIN SUCCESS, WELCOME TO THE MIS INVENTORY SYSTEM")
             self.user = [self.user_jhedID.get(),self.user_fName.get(),self.user_lName.get()]
             self.switch_pages(self.insertion_page)
+            self.current_user = ttk.Label(root,text=f"Current User: {self.user[1], self.user[2]}", font="Arial 20 bold",foreground="#004B8D",)
+            self.current_user.place(x=20, y=20)
+
         else:
             messagebox.showerror("LOGIN FAILURE","Must Log in with correct credentials")
             self.user_jhedID.focus()
             
-    def clear_entries(self):
-        entries = [self.return_jhedID, self.return_fName, self.return_lName, self.barcodeEquipment, self.deviceBarcode]
+    def clear_return_entries(self):
+        entries = [self.return_jhedID, self.return_fName, self.return_lName, self.barcodeEquipment, self.deviceBarcode,self.return_commments]
         if self.save_var.get() == 1:
-            entries.remove(self.return_jhedID)
-            entries.remove(self.return_fName)
-            entries.remove(self.return_lName)
-            self.barcodeEquipment.focus()
-        elif self.save_equipment.get() == 1:
-            entries.remove(self.barcodeEquipment)
-        for entry in entries :
-            entry.delete(0,tk.END)
+            self.barcodeEquipment.delete(0,tk.END) 
+            self.deviceBarcode.delete(0,tk.END)
+            self.return_commments.delete(0,tk.END)
+        else:
+            for entry in entries:
+                entry.delete(0,tk.END)
         self.barcodeEquipment.focus()
         
-
-
+    def clear_insert_entries(self):
+        if self.batch_var.get() == 1:
+            self.batch_deviceBarcode.delete(0,tk.END)
+            self.insert_issued_to.delete(0,tk.END)
+            self.insert_comments.delete(0,tk.END)
+            self.batch_deviceBarcode.focus()
+        else:
+            self.batch_deviceBarcode.delete(0,tk.END)
+            self.batch_barcodeEquipment.delete(0,tk.END)
+            self.insert_issued_to.delete(0,tk.END)
+            self.insert_comments.delete(0,tk.END)
+            self.batch_barcodeEquipment.focus()
     def readAll(self):
         conn = connect_to_database()
         cursor= conn.cursor()
@@ -424,7 +541,7 @@ class BarcodeApp:
         field1_drop_val = self.field1.get()
         field2_drop_val = self.field2.get()
         field3_drop_val = self.field3.get()
-        stmnt = "SELECT JHEID, fName, lName, EQ_Barcode, Device_Barcode, CONVERT(varchar, Insert_Date_Time, 101) AS insert_date, CONVERT(varchar, Insert_Date_Time, 108) AS insert_time FROM inventory WHERE"
+        stmnt = "SELECT cardNo, return_fName, return_lName, [Return/Issued_JHED], EQ_Barcode, Device_Barcode, CONVERT(varchar, Insert_Date_Time, 101) AS insert_date, CONVERT(varchar, Insert_Date_Time, 108) AS insert_time FROM master_inventory WHERE"
 
         conn = connect_to_database()
         cursor= conn.cursor()
@@ -462,7 +579,7 @@ class BarcodeApp:
     def Show_All(self):
         self.readAll()
 
-        columns = ('JHEID', 'fName', 'lName', 'EQ Barcode', 'Device Barcode', 'Date','Time')
+        columns = ('cardNo', 'EQ BARCODE', 'Device', 'Return/Swap JHED', 'Date')
         self.inventory = ttk.Treeview(self.results_filtered_frame, columns=columns,show='headings')
         for col in columns:
             self.inventory.heading(col, text=col)
@@ -474,7 +591,7 @@ class BarcodeApp:
 
     def filtered_show(self):
 
-        columns = ('JHEID', 'fName', 'lName', 'EQ Barcode', 'Device Barcode', 'Date','Time')
+        columns = ('cardNo', 'return_fName', 'return_lName', 'return/swap JHED', 'EQ Barcode', 'Device Barcode', 'Date')
         self.filtered_columns = []
         filters = [self.field1.get()]
 
@@ -504,10 +621,29 @@ class BarcodeApp:
 
         self.filtered_inventory.grid(column=5,row=8)
 
-    def get_Name(self,event,next_widget):
+    def get_user(self,event,next_widget,ID,fname,lname):
+        conn = connect_to_database()
+        curr = conn.cursor()
+        cardNo = ID.get()
+
+        curr.execute('{CALL get_user (?)}',cardNo)
+
+        self.res = curr.fetchall()
+
+        if not self.res :
+            messagebox.showerror("User Not Found", "This user does not exist please try other credentials")
+
+        for row in self.res:
+            fname.insert(tk.END, row[0])
+            lname.insert(tk.END, row[1])
+
+            next_widget.focus()
+        return 'break'
+
+    def get_Name(self,event,next_widget,ID,fname,lname,comments):
         conn_HR = connect_to_hr_database()
         curr_HR = conn_HR.cursor()
-        JHED = self.user_jhedID.get()
+        JHED = ID.get()
     
         curr_HR.execute(f"SELECT EmployeeFirstName, EmployeeLastName FROM [derived].[EmployeeList] WHERE EmployeeJHED = '{JHED}'")
         self.res = curr_HR.fetchall()
@@ -515,13 +651,17 @@ class BarcodeApp:
         if not self.res :
             messagebox.showerror("User Not Found", "This user does not exist please try other credentials")
 
+      
         for row in self.res:
-            self.user_fName.insert(tk.END, row[0])
-            self.user_lName.insert(tk.END, row[1])
+            fname.insert(tk.END, row[0])
+            lname.insert(tk.END, row[1])
 
-            next_widget.focus()
+        next_widget.focus()
+
         return 'break'
+        
     
+
 
 if __name__ == "__main__":
     root=tk.Tk()
